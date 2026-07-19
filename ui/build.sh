@@ -1,0 +1,1 @@
+esbuild index.js --bundle  --outdir=dist --alias:MAATDIR=../../maat
