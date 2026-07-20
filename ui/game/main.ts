@@ -9,6 +9,7 @@ import websocket from 'MAAT/event/Websocket';
 import ImageUtil from "MAAT/util/imageUtil";
 
 let playerUUID = '';
+let urlParams = new URLSearchParams(window.location.search);
 
 class LobbyName extends BaseComponent {
   text: string;
@@ -119,6 +120,9 @@ class LobbyScreen extends BaseComponent {
       }
     })
     websocket.sendMessage({tag:'joinGame'});
+    if (urlParams.get('access')=='admin') {
+      console.log('IS ADMIN')
+    }
   }
 
 }
