@@ -1,3 +1,5 @@
+
+import crypto from 'crypto';
 import { WebSocketServer } from 'ws';
 
 import polyfill from './arrayUtil.js';
@@ -22,13 +24,18 @@ let commandProcessor = {};
 
 wss.on('connection', function connection(ws) {
   ws.id = players.length;
-  players.push({ws, playerName: Array.randomFrom(nameLib).toUpperCase(), inLobby: false});
+  let uuid = crypto.randomUUID();
+  players.push({ws, playerName: Array.randomFrom(nameLib).toUpperCase(), inLobby: false, uuid});
+  ws.send(JSON.stringify({tag:'uuid', uuid}));
 
   ws.on('error', console.error);
   ws.on('message', function message(dataStr) {
     let data = JSON.parse(dataStr);
     console.log(data);
-    commandProcessor[data.tag](ws, data);
+    commandProcessor[data.tag] && commandProcessor[data.tag](ws, data);
+  });
+  ws.on('close', () => {
+    removePlayer(ws.id);
   });
 });
 
@@ -39,10 +46,20 @@ let resetGameInfo = () => {
   };
 }
 
+let removePlayer = (id) => {
+  const player = players[id];
+  if (!player) return;
+  console.log(`${player.playerName} disconnected`);
+  player.inLobby = false;
+  gameInfo.players = gameInfo.players.filter(pid => pid !== id);
+  player.ws = null;
+  broadcastLobby();
+}
+
 let broadcastLobby = () => {
   gameInfo.players.forEach(pid => {
     players[pid].ws.send(JSON.stringify({tag:'lobbyInfo', players: players.filter(p => p.inLobby).map(p => {
-      return {name:p.playerName};
+      return {name:p.playerName, uuid:p.uuid};
     })}));
   })
 }
@@ -62,6 +79,11 @@ let broadcastGameInfo = () => {
 commandProcessor.joinGame = (p, d) => {
   players[p.id].inLobby = true;
   gameInfo.players.push(p.id);
+  broadcastLobby();
+}
+
+commandProcessor.setName = (p, d) => {
+  players[p.id].playerName = d.name.toUpperCase();
   broadcastLobby();
 }
 
@@ -93,6 +115,10 @@ commandProcessor.writeStatement = (p, d) => {
 commandProcessor.updateGuess = (p, d) => {
   let pIndex = gameInfo.players.indexOf(p.id);
   gameInfo.guesses[pIndex] = d.guess;
+}
+
+commandProcessor.reconnect = (p, d) => {
+
 }
 
 let update = () => {
