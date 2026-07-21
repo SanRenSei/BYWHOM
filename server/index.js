@@ -89,13 +89,14 @@ commandProcessor.setName = (p, d) => {
 
 commandProcessor.adminStart = (p, d) => {
   if (d.pw==pw) {
+    console.log('START GAME')
     gameInfo.started = true;
     broadcastGameStart();
   }
   gameInfo.round = 1;
   gameInfo.phase = 'write';
   gameInfo.timeLeft = 60000;
-  gameInfo.topics = Array.shuffle(topicLib).splice(0, 5);
+  gameInfo.topics = [...Array.shuffle(topicLib)].splice(0, 5);
   broadcastGameInfo();
 }
 

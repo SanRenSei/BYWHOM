@@ -1,0 +1,52 @@
+Peach - Work on conracts page, surface more info with metadata components
+
+5 rounds - each round get a category
+
+8 people
+Each person writes a statement
+
+Everyone receives the statements for the other 7 people
+Tries to assign statement to person
+Each statement goes to 7 people
+
+Scoring:
+0/7 or 7/7 - 0 points
+1/7 or 6/7 - 1 points
+2/7 or 5/7 - 3 points
+3/7 or 4/7 - 6 points
+
+Screens
+Lobby screen (Extra admin control to start game)
+Topic screen, transitions to statement input (show round number)
+Arrangement screen
+Answers screen (show right and wrong)
+Score modal
+
+Title Screen Screen
+	Game Title
+	Click to Join
+Lobby Screen
+	List of players
+	Edit your own name
+Admin Screen
+	Lobby Screen + Kick + Start Button
+Topic Screen
+	Show Topic
+	Statement Input
+	Done Button/Timer
+Arrangement Screen
+	Drag and Drop Rectangles to People
+	Timer
+	Animation to correct things
+Score Screen
+	People and Scores
+
+Server Actions
+	Join Game
+	Start Game (Admin)
+	Kick Person (Admin)
+	Get Topics List
+	Submit Statement
+	Get Statements
+	Submit Guesses
+	Get Scores/Game Status

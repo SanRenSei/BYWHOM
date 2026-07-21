@@ -11,7 +11,7 @@ import spriteManager from '../../maat/SpriteManager';
 import MainScreen from './game/main';
 
 let spritePaths = {};
-['logo', 'joinButton','introBg','logoButton'].forEach(i => spritePaths[i] = `img/${i}.png`);
+['logo', 'joinButton','introBg','logoButton', 'gameBg'].forEach(i => spritePaths[i] = `img/${i}.png`);
 spriteManager.hoistPaths({spritePaths});
 
 // websocket.url = 'wss://www.bungubox.com/wrdspr';
@@ -19,5 +19,5 @@ websocket.url = 'ws://localhost:27453';
 websocket.connect();
 
 drawManager.hoistCanvas(document.getElementById('mainCanvas'), 1100, 950);
-drawManager.root.addChild(new MainScreen());
+drawManager.root.addChild(new MainScreen(drawManager.root));
 drawManager.begin();
