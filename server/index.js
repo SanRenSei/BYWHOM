@@ -127,7 +127,7 @@ let update = () => {
     return;
   }
   gameInfo.timeLeft -= 2000;
-  if (gameInfo.timeLeft<=0) {
+  if (gameInfo.timeLeft<=-1000) {
     gameInfo.timeLeft = 60000;
     if (gameInfo.phase=='write') {
       gameInfo.phase = 'guess'; // maybe 65 seconds to put 5 seconds animation transition?
