@@ -7,8 +7,10 @@ import polyfill from './arrayUtil.js';
 const wss = new WebSocketServer({ port: 27453 });
 
 let pw = '748546f3-75c9-4bea-bcae-bd46ecbb7e90';
+let statementCache = {};
 let gameInfo = {
   players: [],
+  playerNames: [],
   scores: [],
   statements: [],
   guesses: [],
@@ -90,12 +92,16 @@ commandProcessor.setName = (p, d) => {
 commandProcessor.adminStart = (p, d) => {
   if (d.pw==pw) {
     console.log('START GAME')
+    statementCache = {};
+    gameInfo.playerNames = gameInfo.players.map(pid => players[pid].playerName)
+    gameInfo.scores = gameInfo.players.map(pid => []);
     gameInfo.started = true;
+    gameInfo.done = false;
     broadcastGameStart();
   }
   gameInfo.round = 1;
   gameInfo.phase = 'write';
-  gameInfo.timeLeft = 60000;
+  gameInfo.timeLeft = 120000;
   gameInfo.topics = [...Array.shuffle(topicLib)].splice(0, 5);
   broadcastGameInfo();
 }
@@ -111,6 +117,11 @@ commandProcessor.adminKick = (p, d) => {
 commandProcessor.writeStatement = (p, d) => {
   let pIndex = gameInfo.players.indexOf(p.id);
   gameInfo.statements[pIndex] = d.statement;
+  let playerName = gameInfo.playerNames[pIndex];
+  if (!statementCache[playerName]) {
+    statementCache[playerName] = [];
+  }
+  statementCache[playerName].push(d.statement);
 }
 
 commandProcessor.updateGuess = (p, d) => {
@@ -118,29 +129,85 @@ commandProcessor.updateGuess = (p, d) => {
   gameInfo.guesses[pIndex] = d.guess;
 }
 
+commandProcessor.statementCacheRequest = (p, d) => {
+  p.send(JSON.stringify({tag:'statementCache', data: statementCache}));
+}
+
 commandProcessor.reconnect = (p, d) => {
 
 }
 
+let scoreRound = () => {
+  let guessScores = [];
+  let statementScores = [];
+  for (let i=0;i<gameInfo.players.length;i++) {
+    guessScores[i] = 0;
+    statementScores[i] = 0;
+  }
+  for (let i=0;i<gameInfo.players.length;i++) {
+    let playerGuess = gameInfo.guesses[i];
+    if (!playerGuess) {
+      continue;
+    }
+    playerGuess.forEach(g => {
+      let {player, statement} = g;
+      let pIndex = gameInfo.playerNames.indexOf(player);
+      let pStatement = gameInfo.statements[pIndex];
+      if (statement == pStatement) {
+        guessScores[i]++;
+        statementScores[pIndex]++;
+      }
+    })
+  }
+  for (let i=0;i<gameInfo.players.length;i++) {
+    if (guessScores[i]==gameInfo.players.length) {
+      gameInfo.scores[i].push(guessScores[i]*3);
+    } else {
+      gameInfo.scores[i].push(guessScores[i]*2);
+    }
+    statementScores[i] = 2*(gameInfo.players.length - 2*Math.abs(gameInfo.players.length/2 - statementScores[i]));
+    gameInfo.scores[i].push(statementScores[i]);
+  }
+}
+
+let clearRound = () => {
+  gameInfo.statements = [];
+  gameInfo.guesses = [];
+}
+
 let update = () => {
-  if (!gameInfo.started) {
+  if (!gameInfo.started || gameInfo.done) {
     return;
   }
   gameInfo.timeLeft -= 2000;
   if (gameInfo.timeLeft<=-1000) {
-    gameInfo.timeLeft = 60000;
+    gameInfo.timeLeft = 120000;
     if (gameInfo.phase=='write') {
-      gameInfo.phase = 'guess'; // maybe 65 seconds to put 5 seconds animation transition?
+      gameInfo.phase = 'guess';
+      gameInfo.timeLeft = 120000;
     } else {
-      // Do scoring
-      gameInfo.phase = 'write'; // 15 second reveal for 75 second total? Reveal answers, show scores, display next topic, then write
+      scoreRound();
+      clearRound();
+      gameInfo.phase = 'write';
+      gameInfo.timeLeft = 120000;
       gameInfo.round++;
       if (gameInfo.round==6) {
         gameInfo.done = true;
       }
     }
   } else {
-    // Check for early writing phase end
+    let earlyRoundEnd = false;
+    if (gameInfo.phase=='write') {
+      earlyRoundEnd = true;
+    }
+    for (let i=0;i<gameInfo.players.length;i++) {
+      if (!gameInfo.statements[i]) {
+        earlyRoundEnd = false;
+      }
+    }
+    if (earlyRoundEnd) {
+      gameInfo.timeLeft = Math.min(gameInfo.timeLeft, 5000);
+    }
   }
   broadcastGameInfo();
 }

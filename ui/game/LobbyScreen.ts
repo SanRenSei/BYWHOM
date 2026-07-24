@@ -16,7 +16,6 @@ export default class LobbyScreen extends BaseComponent {
     this.lobbyNames = [];
     this.subscribeTo('socket', (e:any) => {
       if (e.tag=='lobbyInfo') {
-        console.log(e);
         e.players.forEach((p:any, i:number) => {
           if (this.lobbyNames[i]) {
             this.lobbyNames[i].setText(p.name);
@@ -33,7 +32,6 @@ export default class LobbyScreen extends BaseComponent {
         }
       }
       if (e.tag=='gameStart') {
-        console.log('GAME START');
         this.purge();
         this.parent?.addChild(new WritePhaseScreen());
       }
