@@ -23,7 +23,7 @@ export default class EndScreen extends BaseComponent {
 
         Object.entries(e.data).forEach(([playerName, statements]: [string, any]) => {
           table.addChild(new Text(playerName, {color: "yellow",fontSize: 24,glowColor: "white",glowBlur: 5}).withTransform({ w: 550, h: 40 }));
-          statements.forEach((statement:string) => {table.addChild(new Text(TextUtil.wrapText(statement, 70), {color: "white",fontSize: 16}).withTransform({ w: 550, h: 60 }));});
+          statements.forEach((statement:string) => {table.addChild(new Text(TextUtil.wrapText(statement, 50), {color: "white",fontSize: 16}).withTransform({ w: 550, h: 60 }));});
           table.addChild(new BaseComponent().withTransform({ w: 550, h: 20 }));
         });
 

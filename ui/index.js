@@ -14,7 +14,7 @@ let spritePaths = {};
 ['logo', 'joinButton','introBg','logoButton', 'gameBg'].forEach(i => spritePaths[i] = `img/${i}.png`);
 spriteManager.hoistPaths({spritePaths});
 
-// websocket.url = 'wss://www.bungubox.com/wrdspr';
+// websocket.url = 'wss://www.bungubox.com/bywhom';
 websocket.url = 'ws://localhost:27453';
 websocket.connect();
 

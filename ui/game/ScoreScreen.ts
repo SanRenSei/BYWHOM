@@ -38,7 +38,7 @@ export default class ScoreScreen extends BaseComponent {
     table.reflex();
 
     this.addChild(new ReadyButton(() => {
-      if (gameInfo.round>=3) {
+      if (gameInfo.round>=6) {
         this.parent?.addChild(new EndScreen(this.parent));  
       } else {
         this.parent?.addChild(new WritePhaseScreen());

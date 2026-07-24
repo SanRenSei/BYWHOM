@@ -46,14 +46,14 @@ export default class WritePhaseScreen extends BaseComponent {
           this.doneWriting = false;
         } else {
           this.timeLeft = e.info.timeLeft;
-          this.timeLeftDisplay && (this.timeLeftDisplay.arc = [0, 2*Math.PI*(Math.max(0, this.timeLeft-2000)/60000)]);
+          this.timeLeftDisplay && (this.timeLeftDisplay.arc = [0, 2*Math.PI*(Math.max(0, this.timeLeft-2000)/120000)]);
           if (this.timeLeft<=10000) {
             this.timeLeftDisplay && (this.timeLeftDisplay.fillColor='#ff8888');
           }
           if (this.timeLeft<=2000 && !this.doneWriting) {
             this.submitStatement();
           }
-          if (this.timeLeft<=0 || e.info.phase=='guess') {
+          if (e.info.phase=='guess') {
             this.parent?.addChild(new GuessPhaseScreen());
             this.purge();
           }
@@ -61,7 +61,12 @@ export default class WritePhaseScreen extends BaseComponent {
       }
     })
     this.subscribeTo('keypress', (e:any) => {
-      this.updateStatementInput(this.statementText + e.key.toUpperCase())
+      if (e.key === 'Enter') {
+        this.submitStatement();
+      }
+      if (e.key.length === 1) {
+        this.updateStatementInput(this.statementText + e.key.toUpperCase());
+      }
     })
     this.subscribeTo('keydown', (e:any) => {
       if (e.key=='Backspace') {

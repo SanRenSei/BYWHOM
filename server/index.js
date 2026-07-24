@@ -14,6 +14,7 @@ let gameInfo = {
   scores: [],
   statements: [],
   guesses: [],
+  lockIns: [],
   started: false,
   done: false,
   topics: []
@@ -73,15 +74,19 @@ let broadcastGameStart = () => {
 }
 
 let broadcastGameInfo = () => {
+  let obj = {tag:'gameInfo', info: {...gameInfo}};
+  obj.info.statements = Array.shuffle([...obj.info.statements]);
   gameInfo.players.forEach(pid => {
-    players[pid].ws.send(JSON.stringify({tag:'gameInfo', info: gameInfo}));
+    players[pid].ws.send(JSON.stringify(obj));
   })
 }
 
 commandProcessor.joinGame = (p, d) => {
-  players[p.id].inLobby = true;
-  gameInfo.players.push(p.id);
-  broadcastLobby();
+  if (!players[p.id].inLobby) {
+    players[p.id].inLobby = true;
+    gameInfo.players.push(p.id);
+    broadcastLobby();
+  }
 }
 
 commandProcessor.setName = (p, d) => {
@@ -98,12 +103,12 @@ commandProcessor.adminStart = (p, d) => {
     gameInfo.started = true;
     gameInfo.done = false;
     broadcastGameStart();
+    gameInfo.round = 1;
+    gameInfo.phase = 'write';
+    gameInfo.timeLeft = 120000;
+    gameInfo.topics = [...Array.shuffle(topicLib)].splice(0, 5);
+    broadcastGameInfo();
   }
-  gameInfo.round = 1;
-  gameInfo.phase = 'write';
-  gameInfo.timeLeft = 120000;
-  gameInfo.topics = [...Array.shuffle(topicLib)].splice(0, 5);
-  broadcastGameInfo();
 }
 
 commandProcessor.adminKick = (p, d) => {
@@ -122,6 +127,16 @@ commandProcessor.writeStatement = (p, d) => {
     statementCache[playerName] = [];
   }
   statementCache[playerName].push(d.statement);
+}
+
+commandProcessor.lockIn = (p, d) => {
+  let pIndex = gameInfo.players.indexOf(p.id);
+  gameInfo.lockIns[pIndex] = true;
+}
+
+commandProcessor.unLockIn = (p, d) => {
+  let pIndex = gameInfo.players.indexOf(p.id);
+  gameInfo.lockIns[pIndex] = false;
 }
 
 commandProcessor.updateGuess = (p, d) => {
@@ -173,6 +188,7 @@ let scoreRound = () => {
 let clearRound = () => {
   gameInfo.statements = [];
   gameInfo.guesses = [];
+  gameInfo.lockIns = [];
 }
 
 let update = () => {
@@ -196,16 +212,10 @@ let update = () => {
       }
     }
   } else {
-    let earlyRoundEnd = false;
-    if (gameInfo.phase=='write') {
-      earlyRoundEnd = true;
+    if (gameInfo.phase === 'write' && gameInfo.players.every((_, i) => gameInfo.statements[i])) {
+      gameInfo.timeLeft = Math.min(gameInfo.timeLeft, 5000);
     }
-    for (let i=0;i<gameInfo.players.length;i++) {
-      if (!gameInfo.statements[i]) {
-        earlyRoundEnd = false;
-      }
-    }
-    if (earlyRoundEnd) {
+    if (gameInfo.phase === 'guess' && gameInfo.players.every((_, i) => gameInfo.lockIns[i])) {
       gameInfo.timeLeft = Math.min(gameInfo.timeLeft, 5000);
     }
   }

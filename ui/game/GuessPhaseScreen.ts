@@ -9,6 +9,8 @@ import ImageUtil from "MAAT/util/imageUtil";
 import TextUtil from "MAAT/util/textUtil";
 import WritePhaseScreen from "./WritePhaseScreen";
 import ScoreScreen from "./ScoreScreen";
+import LockInButton from "./LockInButton";
+import CustomButton from "./CustomButton";
 
 class MovablePlayer extends BaseComponent {
   declare parent: DropZone;
@@ -39,6 +41,7 @@ class MovablePlayer extends BaseComponent {
 
       if (target) {
         DropZone.swapPlayers(this.parent, target);
+        this.parent.reflex();
       } else {
         this.withPosition({x:0,y:0});
         this.parent.reflex();
@@ -77,6 +80,7 @@ class MovableStatement extends BaseComponent {
 
       if (target) {
         DropZone.swapStatements(this.parent, target);
+        this.parent.reflex();
       } else {
         this.withPosition({x:0,y:0});
         this.parent.reflex();
@@ -100,6 +104,9 @@ class DropZone extends FlexBox {
   }
 
   static swapPlayers(a: DropZone, b: DropZone) {
+    if (a.parent.parent.lockedIn) {
+      return;
+    }
     let ap = a.player, as = a.statement, bp = b.player, bs = b.statement;
     a.children = [bp, as];
     b.children = [ap, bs];
@@ -116,6 +123,9 @@ class DropZone extends FlexBox {
   }
 
   static swapStatements(a: DropZone, b: DropZone) {
+    if (a.parent.parent.lockedIn) {
+      return;
+    }
     let ap = a.player, as = a.statement, bp = b.player, bs = b.statement;
     a.children = [ap, bs];
     b.children = [bp, as];
@@ -137,10 +147,13 @@ export default class GuessPhaseScreen extends BaseComponent {
   dropZoneList?: FlexBox;
   timeLeft: number;
   timeLeftDisplay?: Oval;
+  lockInButton?: CustomButton;
+  lockedIn: boolean;
 
   constructor() {
     super();
     this.timeLeft = 60000;
+    this.lockedIn = false;
     this.addChild(BaseComponent.createSprite('gameBg', {x:0,y:0,w:600,h:800}));
     this.addChild(new Text('Try to match statements to people!', {color:'white', glowColor:'green', glowBlur: 5})).withTransform({x:0,y:-300,w:400,h:50});
     this.subscribeTo('socket', (e:any) => {
@@ -153,9 +166,12 @@ export default class GuessPhaseScreen extends BaseComponent {
           }
           this.dropZoneList?.reflex();
           this.sendGuess();
+          this.lockInButton = this.addChild(new CustomButton('LOCK IN', () => {
+            this.lockIn();
+          })).withTransform({x:250,y:-350,w:100,h:50});
         }
         this.timeLeft = e.info.timeLeft;
-        this.timeLeftDisplay && (this.timeLeftDisplay.arc = [0, 2*Math.PI*(Math.max(0, this.timeLeft-2000)/60000)]);
+        this.timeLeftDisplay && (this.timeLeftDisplay.arc = [0, 2*Math.PI*(Math.max(0, this.timeLeft-2000)/120000)]);
         if (this.timeLeft<=10000) {
           this.timeLeftDisplay && (this.timeLeftDisplay.fillColor='#ff8888');
         }
@@ -171,6 +187,28 @@ export default class GuessPhaseScreen extends BaseComponent {
     websocket.sendMessage({tag:'updateGuess', guess: this.dropZoneList?.findChildrenOfType(DropZone).map(dz => {
       return {player: dz.player.playerName, statement: dz.statement.statementText}
     })});
+  }
+
+  lockIn() {
+    if (this.lockInButton) {
+      websocket.sendMessage({tag:'lockIn'});
+      this.lockInButton.purge();
+      this.lockInButton = this.addChild(new CustomButton('🔒🔒🔒', () => {
+        this.unLockIn();
+      })).withTransform({x:250,y:-350,w:100,h:50});
+      this.lockedIn = true;
+    }
+  }
+
+  unLockIn() {
+    if (this.lockInButton) {
+      websocket.sendMessage({tag:'unLockIn'});
+      this.lockInButton.purge();
+      this.lockInButton = this.addChild(new CustomButton('LOCK IN', () => {
+        this.lockIn();
+      })).withTransform({x:250,y:-350,w:100,h:50});
+      this.lockedIn = true;
+    }
   }
 
 }
